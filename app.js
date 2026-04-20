@@ -90,8 +90,10 @@
   const i18n = () => window.I18N;
   const tr = (k) => (i18n() ? i18n().t(k) : k);
   const curLang = () => (i18n() ? i18n().lang : 'en');
-  const trackName = (t) => (curLang() === 'zh' && t.nameZh) ? t.nameZh : t.name;
-  const trackSub = (t) => (curLang() === 'zh') ? t.name : (t.nameZh || '');
+  // Preset tracks: English always primary (author's original name), Chinese small underneath.
+  // Keeps the "real" track identity visible in both languages.
+  const trackName = (t) => t.name;
+  const trackSub = (t) => t.nameZh || '';
 
   function setTag(msg) {
     el.tagText.removeAttribute('data-i18n');
@@ -150,7 +152,7 @@
       b.style.setProperty('--p-a', p.tones[0]);
       b.style.setProperty('--p-b', p.tones[1]);
       b.style.setProperty('--p-c', p.tones[2]);
-      b.innerHTML = `<span class="palette-chip"></span><span class="palette-name">${p.name}</span>`;
+      b.innerHTML = `<span class="palette-chip"></span><span class="palette-name" data-i18n="palette_${p.id}">${tr('palette_' + p.id)}</span>`;
       b.addEventListener('click', () => applySkin(p.id));
       el.palettePicker.appendChild(b);
     });

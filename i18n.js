@@ -51,6 +51,12 @@
       mood_dreamy_desc: 'wide · hazy',
       mood_pulse_desc: 'fast · reactive',
       zen_btn: 'ZEN',
+      palette_amber: 'Dawn',
+      palette_emerald: 'Garden',
+      palette_rose: 'Bloom',
+      palette_sky: 'Mist',
+      palette_crimson: 'Ember',
+      palette_ivory: 'Paper',
       lang_switch_label: 'EN / 中',
       lang_switch_to: 'switch to 中文'
     },
@@ -103,6 +109,12 @@
       mood_dreamy_desc: '阔 · 朦',
       mood_pulse_desc: '快 · 应激',
       zen_btn: 'ZEN',
+      palette_amber: '晨曦',
+      palette_emerald: '园林',
+      palette_rose: '绽放',
+      palette_sky: '薄雾',
+      palette_crimson: '余烬',
+      palette_ivory: '纸白',
       lang_switch_label: 'EN / 中',
       lang_switch_to: '切换到 English'
     }
