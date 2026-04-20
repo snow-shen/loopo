@@ -1073,6 +1073,21 @@ strudel-editor { display: none; }
   border-radius: 2px;
 }
 
+/* silent-switch hint — tiny, mobile-only */
+.mute-hint {
+  display: none;
+  margin: 4px 0 0;
+  padding: 0 var(--s2);
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  text-align: center;
+  max-width: 320px;
+  line-height: 1.4;
+}
+@media (max-width: 1024px) { .mute-hint { display: block; } }
+
 /* ── palette picker (compact inline row under the deck) ── */
 
 .palette-picker {
