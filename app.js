@@ -201,7 +201,16 @@
     for (const btn of el.templates.querySelectorAll('.tpl')) {
       btn.classList.toggle('active', btn.dataset.id === id);
     }
-    el.strudelEl.setAttribute('code', t.code);
+    // Prefer setCode on the live editor — setting the attribute races
+    // with the component's own connectedCallback setTimeout which reads
+    // innerHTML and overwrites code. On fast mobile browsers (WeChat)
+    // that race ate our selectTemplate and left the editor empty.
+    const editor = getEditor();
+    if (editor && typeof editor.setCode === 'function') {
+      editor.setCode(t.code);
+    } else {
+      el.strudelEl.setAttribute('code', t.code);
+    }
     beatIndex = 0;
     bassHist = [];
     const editor = getEditor();
@@ -673,6 +682,12 @@
     sizeZenSpectrumCanvas();
   });
   drawLoop();
+  // Clear the placeholder innerHTML before the strudel-editor component's
+  // connectedCallback setTimeout reads it — that setTimeout would
+  // otherwise race with selectTemplate and reset the editor back to the
+  // "silence" comment on fast mobile browsers (seen in WeChat webview).
+  if (el.strudelEl) el.strudelEl.innerHTML = '';
+
   renderTemplates();
   // restore previously chosen palette (if any) before rendering swatches
   try {
@@ -700,6 +715,11 @@
   });
 
   el.vinyl.addEventListener('click', async () => {
+    await togglePlay();
+    if (!analyser) setupMasterChain();
+  });
+  el.cta.addEventListener('click', async (e) => {
+    e.preventDefault();
     await togglePlay();
     if (!analyser) setupMasterChain();
   });
