@@ -307,13 +307,13 @@ body[data-lang="zh"] .lang-seg[data-lang-seg="zh"] {
 .hero-left { display: flex; flex-direction: column; gap: var(--s2); }
 .wordmark {
   font-family: var(--ff-display);
-  font-weight: 700;
-  font-size: clamp(40px, 6.5vw, 76px);
-  line-height: 0.9;
-  letter-spacing: -0.04em;
+  font-weight: 600;
+  font-size: clamp(26px, 3vw, 40px);
+  line-height: 1;
+  letter-spacing: -0.03em;
   display: flex;
   align-items: baseline;
-  gap: var(--s2);
+  gap: 2px;
 }
 .wordmark .dj {
   color: var(--accent);
@@ -1033,6 +1033,58 @@ body.zen-mode .zen-mix {
   opacity: 1;
   transform: translateY(-50%) translateX(0);
   pointer-events: auto;
+}
+/* when user closes the panel (×) inside zen, hide it but keep zen on */
+body.zen-mode.mix-closed .zen-mix {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) translateX(30px);
+}
+
+/* floating reopen pill — only visible in zen + mix-closed */
+.zen-mix-reopen {
+  position: fixed;
+  top: 50%;
+  right: var(--s4);
+  transform: translateY(-50%) translateX(20px);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: rgba(20, 20, 28, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(var(--accent-rgb), 0.45);
+  border-radius: 999px;
+  color: var(--ink);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  text-transform: lowercase;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(.3,.8,.4,1), border-color 0.2s, background 0.2s;
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.6), 0 0 18px rgba(var(--accent-rgb), 0.3);
+}
+body.zen-mode.mix-closed .zen-mix-reopen {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) translateX(0);
+}
+.zen-mix-reopen:hover {
+  border-color: var(--accent);
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.7), 0 0 26px rgba(var(--accent-rgb), 0.5);
+}
+.zmr-dots { display: inline-flex; flex-direction: column; gap: 2px; }
+.zmr-dots i {
+  width: 12px; height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+  display: block;
+  opacity: 0.85;
 }
 .zm-header {
   display: flex;

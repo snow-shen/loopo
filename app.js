@@ -6,28 +6,29 @@
     filter: 20000,
     volume: 0.9,
     skin: 'amber',
-    mood: 'calm',
+    mood: 'dreamy',
     zen: false,
     source: 'preset', // preset | custom
     effects: { aurora: true, ripples: true, particles: true },
     fx: {
-      sensitivity: 1.35,
+      sensitivity: 1.45,
       rippleSize: 1.0,
-      rippleLife: 6000,
-      rippleWidth: 1.3,
-      rippleAlpha: 0.55,
-      particleCount: 60,
+      rippleLife: 9500,
+      rippleWidth: 1.1,
+      rippleAlpha: 0.4,
+      particleCount: 70,
       particleSize: 1.0,
-      particleDrift: 0.6,
+      particleDrift: 1.2,
       auroraAmount: 0.4,
       auroraSpeed: 1.0
     }
   };
 
+  // All moods get slower, less-frequent ripples + more floating particles
   const MOODS = {
-    calm:   { cooldown: 1500, burst: 1, fx: { sensitivity: 1.35, rippleSize: 1.0,  rippleLife: 6000, rippleWidth: 1.3, rippleAlpha: 0.55, particleCount: 60,  particleSize: 1.0, particleDrift: 0.5, auroraAmount: 0.4,  auroraSpeed: 0.6 } },
-    dreamy: { cooldown: 900,  burst: 1, fx: { sensitivity: 1.22, rippleSize: 1.25, rippleLife: 4800, rippleWidth: 1.8, rippleAlpha: 0.7,  particleCount: 110, particleSize: 1.2, particleDrift: 0.8, auroraAmount: 0.55, auroraSpeed: 1.0 } },
-    pulse:  { cooldown: 400,  burst: 1, fx: { sensitivity: 1.1,  rippleSize: 0.85, rippleLife: 3000, rippleWidth: 2.2, rippleAlpha: 0.8,  particleCount: 150, particleSize: 0.9, particleDrift: 1.4, auroraAmount: 0.35, auroraSpeed: 1.6 } }
+    calm:   { cooldown: 2800, burst: 1, fx: { sensitivity: 1.45, rippleSize: 1.0,  rippleLife: 9500, rippleWidth: 1.1, rippleAlpha: 0.4,  particleCount: 70,  particleSize: 1.0, particleDrift: 1.2, auroraAmount: 0.4,  auroraSpeed: 0.6 } },
+    dreamy: { cooldown: 1800, burst: 1, fx: { sensitivity: 1.3,  rippleSize: 1.25, rippleLife: 8000, rippleWidth: 1.5, rippleAlpha: 0.55, particleCount: 120, particleSize: 1.2, particleDrift: 1.6, auroraAmount: 0.55, auroraSpeed: 1.0 } },
+    pulse:  { cooldown: 900,  burst: 1, fx: { sensitivity: 1.15, rippleSize: 0.9,  rippleLife: 5500, rippleWidth: 1.9, rippleAlpha: 0.7,  particleCount: 160, particleSize: 0.9, particleDrift: 2.2, auroraAmount: 0.35, auroraSpeed: 1.6 } }
   };
 
   // Palette definitions — name + 3 tones. Keys match body.theme-* classes.
@@ -61,6 +62,7 @@
     zenMoodTag: document.getElementById('zenMoodTag'),
     zenMix: document.getElementById('zenMix'),
     zenMixClose: document.getElementById('zenMixClose'),
+    zenMixReopen: document.getElementById('zenMixReopen'),
     rippleCanvas: document.getElementById('ripple-canvas'),
     tempo: document.getElementById('tempo'),
     tempoVal: document.getElementById('tempoVal'),
@@ -335,6 +337,8 @@
     state.zen = on;
     document.body.classList.toggle('zen-mode', on);
     el.zenBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    // Leaving zen resets mix-closed so next entry shows the panel again.
+    if (!on) document.body.classList.remove('mix-closed');
     seedParticles(particleCount());
   }
 
@@ -344,8 +348,8 @@
     return {
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
-      vx: (Math.random() - 0.5) * 0.25,
-      vy: (Math.random() - 0.5) * 0.25,
+      vx: (Math.random() - 0.5) * 0.6,
+      vy: (Math.random() - 0.5) * 0.6,
       size: 1 + Math.random() * 3,
       bin: 2 + Math.floor(Math.random() * 96),
       base: 0.08 + Math.random() * 0.22,
@@ -602,7 +606,14 @@
 
   // Zen mode handlers
   el.zenBtn.addEventListener('click', () => setZen(!state.zen));
-  el.zenMixClose.addEventListener('click', () => setZen(false));
+  // × only hides the zen-mix panel (user stays in zen). The small floating
+  // "open mix" button then appears to let them reopen it.
+  el.zenMixClose.addEventListener('click', () => {
+    document.body.classList.add('mix-closed');
+  });
+  el.zenMixReopen.addEventListener('click', () => {
+    document.body.classList.remove('mix-closed');
+  });
   el.zenMix.addEventListener('click', (e) => {
     const mood = e.target.closest('[data-zen-mood]');
     if (mood) applyMood(mood.dataset.zenMood);
