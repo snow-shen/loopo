@@ -213,7 +213,6 @@
     }
     beatIndex = 0;
     bassHist = [];
-    const editor = getEditor();
     if (editor && state.playing) {
       try { await editor.evaluate(true); } catch (e) { console.error(e); }
     }
