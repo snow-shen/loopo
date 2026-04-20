@@ -54,7 +54,7 @@
     tagText: document.getElementById('tagText'),
     cpsReadout: document.getElementById('cpsReadout'),
     cta: document.getElementById('cta'),
-    paletteGrid: document.getElementById('paletteGrid'),
+    palettePicker: document.getElementById('palettePicker'),
     zenBtn: document.getElementById('zenBtn'),
     zenCaption: document.getElementById('zenCaption'),
     zenTitle: document.getElementById('zenTitle'),
@@ -142,15 +142,17 @@
   }
 
   function renderPalettes() {
-    el.paletteGrid.innerHTML = '';
+    el.palettePicker.innerHTML = '';
     PALETTES.forEach(p => {
       const b = document.createElement('button');
       b.className = 'palette' + (p.id === state.skin ? ' active' : '');
       b.dataset.theme = p.id;
-      const stack = p.tones.map(t => `<i style="background:${t}"></i>`).join('');
-      b.innerHTML = `<div class="palette-swatch">${stack}</div><div class="palette-name">${p.name}</div>`;
+      b.style.setProperty('--p-a', p.tones[0]);
+      b.style.setProperty('--p-b', p.tones[1]);
+      b.style.setProperty('--p-c', p.tones[2]);
+      b.innerHTML = `<span class="palette-chip"></span><span class="palette-name">${p.name}</span>`;
       b.addEventListener('click', () => applySkin(p.id));
-      el.paletteGrid.appendChild(b);
+      el.palettePicker.appendChild(b);
     });
   }
 
@@ -159,7 +161,7 @@
     document.body.className = document.body.className
       .split(/\s+/).filter(c => !c.startsWith('theme-')).join(' ').trim();
     if (theme !== 'amber') document.body.classList.add(`theme-${theme}`);
-    for (const btn of el.paletteGrid.querySelectorAll('.palette')) {
+    for (const btn of el.palettePicker.querySelectorAll('.palette')) {
       btn.classList.toggle('active', btn.dataset.theme === theme);
     }
   }
@@ -372,13 +374,14 @@
       if (p.y > H + 10) p.y = -10;
       const freqV = bins ? (bins[p.bin] || 0) / 255 : 0;
       const twinkle = 0.6 + 0.4 * Math.sin(p.phase);
-      const alpha = (p.base * twinkle + freqV * 0.8) * zenBoost;
-      const size = (p.size + freqV * 3.5) * sizeMul;
+      // gentler beat-reactivity so particles don't feel like a strobe
+      const alpha = (p.base * twinkle + freqV * 0.28) * zenBoost;
+      const size = (p.size + freqV * 1.4) * sizeMul;
       ctx.beginPath();
       ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(${rgb}, ${alpha})`;
-      ctx.shadowColor = `rgba(${rgb}, ${alpha * 0.7})`;
-      ctx.shadowBlur = 6 + freqV * 16;
+      ctx.shadowColor = `rgba(${rgb}, ${alpha * 0.5})`;
+      ctx.shadowBlur = 4 + freqV * 7;
       ctx.fill();
     }
     ctx.shadowBlur = 0;
@@ -628,10 +631,19 @@
     try { window.cps(t.defaultCps * state.tempo); } catch (e) { console.warn(e); }
     refreshCpsReadout();
   }
+  // tempo: apply cps() live AND debounce-re-evaluate so the user hears
+  // the change immediately instead of only on the next cycle boundary
+  let tempoReEvalTimer = null;
   el.tempo.addEventListener('input', (e) => {
     state.tempo = parseFloat(e.target.value);
     el.tempoVal.textContent = `${state.tempo.toFixed(2)}×`;
     applyTempo();
+    clearTimeout(tempoReEvalTimer);
+    tempoReEvalTimer = setTimeout(() => {
+      if (!state.playing) return;
+      const editor = getEditor();
+      if (editor && editor.evaluate) editor.evaluate(true).catch(() => {});
+    }, 180);
   });
   el.filter.addEventListener('input', (e) => {
     state.filter = parseFloat(e.target.value);

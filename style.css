@@ -904,11 +904,12 @@ strudel-editor { display: none; }
 }
 .control-val {
   font-family: var(--ff-mono);
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
+  text-align: right;
 }
 
 /* ── visualizer ───────────────────────────────── */
@@ -1201,7 +1202,7 @@ body.zen-mode .hero,
 body.zen-mode .source-bar,
 body.zen-mode .templates,
 body.zen-mode .editor-shell,
-body.zen-mode .mixer,
+body.zen-mode .mixer-side,
 body.zen-mode .viz-wrap,
 body.zen-mode .palette-picker,
 body.zen-mode .cta,
@@ -1212,11 +1213,18 @@ body.zen-mode .footer {
   transition: opacity 0.8s ease;
 }
 body.zen-mode .booth { padding: 0; }
+/* collapse deck-wrap's other children so the vinyl lands at true center */
+body.zen-mode .deck-wrap > .cta,
+body.zen-mode .deck-wrap > .palette-picker,
+body.zen-mode .deck-wrap > .mixer-side {
+  display: none;
+}
 body.zen-mode .deck-wrap {
   position: fixed;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   margin: 0;
+  gap: 0;
   z-index: 10;
 }
 body.zen-mode .deck { transform: scale(1.2); }
