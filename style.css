@@ -168,92 +168,245 @@ body.fx-off-aurora .aurora { opacity: 0 !important; }
   transition: opacity 0.5s;
 }
 
-/* ── zen button — now a big prominent glass pill ── */
+/* optional spectrum below the vinyl in zen mode */
+.zen-spectrum-canvas {
+  position: fixed;
+  left: 50%;
+  bottom: max(180px, 24vh);
+  transform: translateX(-50%);
+  width: 460px;
+  height: 64px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 15;
+  transition: opacity 0.6s ease;
+}
+body.zen-mode.show-zen-spectrum .zen-spectrum-canvas { opacity: 0.9; }
 
-.zen-btn {
+/* ── zen bubble — floating cloud beside the spectrum ── */
+
+.zen-bubble {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  padding: var(--s2) 0;
+  cursor: pointer;
+  overflow: visible;
+}
+.bubble-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+.bubble-caption {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--ff-display);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  position: relative;
+}
+.bubble-caption::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 14px; bottom: -3px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  opacity: 0.7;
+  transition: transform 0.25s cubic-bezier(.2,.8,.3,1);
+}
+.zen-bubble:hover .bubble-caption::after { transform: scaleX(1); }
+.bubble-caption-arrow {
+  transition: transform 0.25s;
+  opacity: 0.85;
+}
+.zen-bubble:hover .bubble-caption-arrow { transform: translateX(3px); opacity: 1; }
+.bubble-floaty {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: cloud-float 9s ease-in-out infinite;
+}
+.bubble-inner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255,255,255,0.12), transparent 45%),
+    radial-gradient(circle at 50% 55%, rgba(var(--accent-rgb), 0.3) 0%, rgba(var(--accent-rgb), 0.12) 55%, rgba(var(--accent-rgb), 0.05) 80%);
+  /* dim by default — secondary role while the play CTA is the bright one */
+  box-shadow:
+    0 0 14px rgba(var(--accent-rgb), 0.18),
+    0 0 32px rgba(var(--accent-rgb), 0.09),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  opacity: 0.75;
+  animation: cloud-breathe 4s ease-in-out infinite;
+  transition: box-shadow 0.5s ease, opacity 0.5s ease, background 0.5s ease;
+}
+/* when music is on, bubble becomes the bright focal point and the CTA
+   (stop) dims — only one attention center at any time */
+body.is-playing .bubble-inner {
+  opacity: 1;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255,255,255,0.2), transparent 45%),
+    radial-gradient(circle at 50% 55%, rgba(var(--accent-rgb), 0.6) 0%, rgba(var(--accent-rgb), 0.25) 55%, rgba(var(--accent-rgb), 0.1) 80%);
+  box-shadow:
+    0 0 40px rgba(var(--accent-rgb), 0.55),
+    0 0 90px rgba(var(--accent-rgb), 0.28),
+    0 0 150px rgba(var(--accent-rgb), 0.14),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+}
+body.is-playing .bubble-cloud { opacity: 1; }
+.bubble-cloud { transition: opacity 0.5s ease; opacity: 0.45; }
+body.is-playing .bubble-caption { color: var(--accent); opacity: 1; }
+.bubble-caption { opacity: 0.55; transition: opacity 0.4s, color 0.4s; }
+/* three soft offset clouds around the core for the "floating cluster" feel */
+.bubble-cloud {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(14px);
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.bubble-cloud.b-1 {
+  top: -8%; left: -14%;
+  width: 60%; height: 60%;
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.45), transparent 65%);
+  animation: cloud-drift-a 11s ease-in-out infinite;
+}
+.bubble-cloud.b-2 {
+  bottom: -12%; right: -8%;
+  width: 55%; height: 55%;
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.32), transparent 65%);
+  animation: cloud-drift-b 14s ease-in-out infinite;
+}
+.bubble-cloud.b-3 {
+  top: 30%; right: -16%;
+  width: 45%; height: 45%;
+  background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%);
+  animation: cloud-drift-c 17s ease-in-out infinite;
+}
+.bubble-en {
+  font-family: var(--ff-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+.bubble-zh {
+  font-family: var(--ff-display);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  opacity: 0.95;
+  text-transform: none;
+}
+.zen-bubble:hover .bubble-inner {
+  transform: scale(1.06);
+  box-shadow:
+    0 0 48px rgba(var(--accent-rgb), 0.6),
+    0 0 110px rgba(var(--accent-rgb), 0.3),
+    inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.zen-bubble:hover .bubble-cloud { filter: blur(18px); }
+
+@keyframes cloud-float {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-5px, -8px); }
+  50% { transform: translate(6px, 4px); }
+  75% { transform: translate(-3px, 7px); }
+}
+@keyframes cloud-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+@keyframes cloud-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.85; }
+  50% { transform: translate(8px, -6px) scale(1.15); opacity: 1; }
+}
+@keyframes cloud-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.75; }
+  50% { transform: translate(-10px, 8px) scale(1.1); opacity: 0.95; }
+}
+@keyframes cloud-drift-c {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  50% { transform: translate(-14px, -10px) scale(1.2); opacity: 0.9; }
+}
+
+/* exit state: bubble collapses, small fixed pill top-right */
+.zen-card-exit { display: none; }
+.zen-bubble[aria-pressed="true"] {
   position: fixed;
   top: var(--s4);
   right: var(--s4);
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 22px 12px 20px;
-  background: rgba(20, 20, 28, 0.78);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(var(--accent-rgb), 0.6);
+  min-height: 0;
+  width: max-content;
+  flex-direction: row;
+  padding: 8px 16px 8px 10px;
+  background: rgba(var(--accent-rgb), 0.14);
+  border: 1px solid rgba(var(--accent-rgb), 0.5);
   border-radius: 999px;
-  color: var(--ink);
-  cursor: pointer;
-  transition: transform 0.2s, border-color 0.2s, background 0.2s;
-  animation: zen-attract 3.4s ease-in-out infinite;
+  z-index: 60;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.6);
+  white-space: nowrap;
+  writing-mode: horizontal-tb;
 }
-.zen-btn:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent);
-  animation: none;
-  box-shadow:
-    0 14px 44px -10px rgba(0, 0, 0, 0.8),
-    0 0 36px rgba(var(--accent-rgb), 0.6);
-}
-.zen-btn[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: rgba(var(--accent-rgb), 0.2);
-  animation: none;
-}
-.zen-btn[aria-pressed="true"] .zen-label { color: var(--accent); }
-.zen-orb {
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.75), var(--accent));
-  box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.95);
-  animation: breathe 3s ease-in-out infinite;
-  flex-shrink: 0;
-}
-.zen-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  line-height: 1;
-  gap: 3px;
-}
-.zen-label {
-  font-family: var(--ff-mono);
-  font-size: 14px;
-  letter-spacing: 0.22em;
-  font-weight: 700;
-  color: var(--ink);
-}
-.zen-sub {
+.zen-bubble[aria-pressed="true"] .bubble-stack { display: none; }
+.zen-bubble[aria-pressed="true"] .zen-card-exit {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   font-family: var(--ff-display);
-  font-size: 11px;
-  letter-spacing: 0;
-  font-weight: 500;
-  color: var(--accent);
-  text-transform: lowercase;
-  opacity: 0.9;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  writing-mode: horizontal-tb;
 }
-@keyframes zen-attract {
-  0%, 100% {
-    box-shadow:
-      0 10px 36px -10px rgba(0, 0, 0, 0.7),
-      0 0 20px rgba(var(--accent-rgb), 0.28),
-      0 0 0 1px rgba(255, 255, 255, 0.04) inset;
-  }
-  50% {
-    box-shadow:
-      0 12px 40px -10px rgba(0, 0, 0, 0.75),
-      0 0 42px rgba(var(--accent-rgb), 0.55),
-      0 0 0 1px rgba(255, 255, 255, 0.04) inset;
-  }
+.zen-bubble[aria-pressed="true"] .zen-card-exit > span { white-space: nowrap; }
+.zen-bubble[aria-pressed="true"]:hover {
+  background: rgba(var(--accent-rgb), 0.22);
+  border-color: var(--accent);
+}
+.zen-x {
+  font-family: var(--ff-display);
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 400;
+  color: var(--accent);
 }
 
 /* ── language toggle (sits left of zen button) ── */
 .lang-btn {
   position: fixed;
   top: var(--s4);
-  right: calc(var(--s4) + 160px);
+  right: var(--s4);
   z-index: 50;
   display: flex;
   align-items: center;
@@ -297,18 +450,18 @@ body[data-lang="zh"] .lang-seg[data-lang-seg="zh"] {
 /* ── hero ─────────────────────────────────────── */
 
 .hero {
-  padding: var(--s5) var(--s6) var(--s4);
+  padding: var(--s3) var(--s6) var(--s2);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: var(--s4);
   flex-wrap: wrap;
 }
-.hero-left { display: flex; flex-direction: column; gap: var(--s2); }
+.hero-left { display: flex; flex-direction: column; gap: 4px; }
 .wordmark {
   font-family: var(--ff-display);
   font-weight: 600;
-  font-size: clamp(26px, 3vw, 40px);
+  font-size: clamp(22px, 2.4vw, 32px);
   line-height: 1;
   letter-spacing: -0.03em;
   display: flex;
@@ -350,8 +503,10 @@ body[data-lang="zh"] .lang-seg[data-lang-seg="zh"] {
 
 .hero-right {
   display: flex;
-  gap: var(--s5);
-  padding-right: 120px; /* breathing room next to zen button */
+  flex-direction: column;
+  gap: var(--s3);
+  align-items: flex-end;
+  padding-right: 80px; /* breathing room next to lang pill */
 }
 .stat { display: flex; flex-direction: column; gap: var(--s1); min-width: 90px; }
 .stat-label {
@@ -363,7 +518,7 @@ body[data-lang="zh"] .lang-seg[data-lang-seg="zh"] {
 }
 .stat-value {
   font-family: var(--ff-mono);
-  font-size: 30px;
+  font-size: 22px;
   font-weight: 500;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
@@ -376,10 +531,10 @@ body[data-lang="zh"] .lang-seg[data-lang-seg="zh"] {
 .booth {
   max-width: 1200px;
   margin: 0 auto;
-  padding: var(--s3) var(--s6) var(--s6);
+  padding: var(--s2) var(--s6) var(--s4);
   display: flex;
   flex-direction: column;
-  gap: var(--s4);
+  gap: var(--s3);
 }
 
 /* ── source toggle (Preset / Custom) ─────────── */
@@ -507,9 +662,47 @@ body.source-custom .templates { display: none; }
 
 .stage {
   display: grid;
-  grid-template-columns: 340px 1fr 96px;
-  gap: var(--s4);
+  grid-template-columns: 340px 1fr 120px;
+  gap: var(--s3);
   align-items: stretch;
+}
+/* zen bubble floats on the right edge of the viewport, vertically
+   centered beside the stage — outside the 1200px booth column */
+.zen-rail {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 120px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* let child capture clicks; rail itself is invisible */
+}
+.zen-rail > * { pointer-events: auto; }
+@media (max-width: 1280px) { .zen-rail { right: 60px; } }
+
+/* tablet + narrower: use the same compact corner bubble as phone.
+   Full caption + side rail only stays on wide desktop. */
+@media (max-width: 1100px) {
+  .zen-rail {
+    top: auto;
+    bottom: 24px;
+    right: 20px;
+    align-items: flex-end;
+    justify-content: flex-end;
+    pointer-events: none;
+  }
+  .zen-rail > * { pointer-events: auto; }
+  .bubble-stack { gap: 0; align-items: center; }
+  .bubble-floaty { width: 76px; height: 76px; }
+  .bubble-en { font-size: 15px; }
+  .bubble-zh { font-size: 9px; letter-spacing: 0.1em; }
+  .bubble-caption { display: none; }
+}
+@media (max-width: 520px) {
+  .zen-rail { bottom: 18px; right: 16px; }
+  .bubble-floaty { width: 64px; height: 64px; }
 }
 .deck-wrap {
   display: flex;
@@ -700,22 +893,86 @@ body.source-custom .templates { display: none; }
 }
 .tonearm.on { transform: rotate(-10deg); }
 
+/* CTA = bubble-style pill matching the zen bubble's visual language.
+   No drift animation — just a soft breathing glow + radial inner gradient
+   so it reads "bright and inviting" next to the vinyl. */
 .cta {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  background: rgba(var(--accent-rgb), 0.12);
-  border: 1px solid rgba(var(--accent-rgb), 0.32);
+  gap: 14px;
+  padding: 12px 24px 12px 16px;
+  background:
+    radial-gradient(circle at 25% 28%, rgba(255,255,255,0.2), transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(var(--accent-rgb), 0.55), rgba(var(--accent-rgb), 0.15) 70%);
+  border: 1px solid rgba(var(--accent-rgb), 0.8);
   border-radius: 999px;
-  transition: opacity 0.25s;
-  box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.18);
+  box-shadow:
+    0 0 40px rgba(var(--accent-rgb), 0.65),
+    0 0 90px rgba(var(--accent-rgb), 0.35),
+    0 0 140px rgba(var(--accent-rgb), 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  animation: cta-glow 3.2s ease-in-out infinite;
+  transition: opacity 0.25s, background 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+/* extra soft halo behind the pill — large blurred accent cloud */
+.cta::before {
+  content: "";
+  position: absolute;
+  inset: -28px;
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, rgba(var(--accent-rgb), 0.35), transparent 60%);
+  filter: blur(18px);
+  z-index: -1;
+  pointer-events: none;
+  animation: cta-halo 3.2s ease-in-out infinite;
+}
+@keyframes cta-halo {
+  0%, 100% { opacity: 0.65; transform: scale(0.96); }
+  50% { opacity: 1; transform: scale(1.08); }
 }
 .cta.hidden { opacity: 0; pointer-events: none; }
-.cta-arrow {
-  font-size: 22px;
-  color: var(--accent);
-  animation: arrow 1.4s ease-in-out infinite;
+.cta.stop {
+  background:
+    radial-gradient(circle at 25% 28%, rgba(255,255,255,0.06), transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(var(--accent-rgb), 0.12), transparent 70%);
+  border-color: rgba(var(--accent-rgb), 0.25);
+  animation: none;
+  box-shadow:
+    0 0 14px rgba(var(--accent-rgb), 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.cta.stop .cta-orb {
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.3), rgba(var(--accent-rgb), 0.35));
+  box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.3);
+  animation: none;
+}
+.cta-orb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, rgba(255,255,255,0.9), var(--accent));
+  box-shadow:
+    0 0 18px rgba(var(--accent-rgb), 1),
+    0 0 36px rgba(var(--accent-rgb), 0.55);
+  animation: breathe 3s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes cta-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 32px rgba(var(--accent-rgb), 0.55),
+      0 0 72px rgba(var(--accent-rgb), 0.28),
+      0 0 120px rgba(var(--accent-rgb), 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 0 52px rgba(var(--accent-rgb), 0.8),
+      0 0 108px rgba(var(--accent-rgb), 0.45),
+      0 0 170px rgba(var(--accent-rgb), 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.26);
+  }
 }
 .cta-text {
   display: flex;
@@ -948,7 +1205,7 @@ strudel-editor { display: none; }
 /* ── visualizer ───────────────────────────────── */
 
 .viz-wrap {
-  padding: var(--s3) var(--s2);
+  padding: var(--s3) var(--s3);
   display: flex;
   flex-direction: column;
   gap: var(--s2);
@@ -957,7 +1214,6 @@ strudel-editor { display: none; }
 }
 .viz-wrap .eyebrow {
   writing-mode: vertical-rl;
-  transform: rotate(180deg);
   margin: 0 0 var(--s2) 0;
   padding: var(--s2) 0;
 }
@@ -1306,6 +1562,25 @@ body.zen-mode .footer {
   pointer-events: none;
   transition: opacity 0.8s ease;
 }
+
+/* idle auto-hide: when mouse doesn't move for a few seconds, fade the
+   exit pill + zen-mix panel out so the user gets a clean, unbroken
+   canvas. mouse move re-shows them instantly. */
+body.zen-mode .zen-bubble[aria-pressed="true"],
+body.zen-mode .zen-mix,
+body.zen-mode.mix-closed .zen-mix-reopen {
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+body.zen-mode.zen-idle .zen-bubble[aria-pressed="true"],
+body.zen-mode.zen-idle .zen-mix,
+body.zen-mode.zen-idle.mix-closed .zen-mix-reopen {
+  opacity: 0;
+  pointer-events: none;
+}
+body.zen-mode.zen-idle { cursor: none; }
+
+.zm-layer-flat .zm-knobs { display: none; }
+.zm-layer-flat { padding-bottom: var(--s2); }
 body.zen-mode .booth { padding: 0; }
 /* collapse deck-wrap's other children so the vinyl lands at true center */
 body.zen-mode .deck-wrap > .cta,

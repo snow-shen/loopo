@@ -9,13 +9,14 @@
     mood: 'dreamy',
     zen: false,
     source: 'preset', // preset | custom
+    customCode: '', // user's custom strudel code, persists across source toggles
     effects: { aurora: true, ripples: true, particles: true },
     fx: {
-      sensitivity: 1.5,
+      sensitivity: 1.55,
       rippleSize: 1.25,
-      rippleLife: 14000,
+      rippleLife: 12000,
       rippleWidth: 1.0,
-      rippleAlpha: 0.17,
+      rippleAlpha: 0.22,
       particleCount: 120,
       particleSize: 1.2,
       particleDrift: 1.6,
@@ -24,11 +25,13 @@
     }
   };
 
-  // Ripples tuned to quiet ambient — very rare, very faint, very slow.
+  // Detector sees every kick but we only spawn every Nth one, so ripples
+  // land ON a beat but come rarely. Higher sensitivity + higher beatMod
+  // means only strong kicks count and only every Nth strong kick fires.
   const MOODS = {
-    calm:   { cooldown: 7500, burst: 1, fx: { sensitivity: 1.65, rippleSize: 1.0,  rippleLife: 18000, rippleWidth: 0.8, rippleAlpha: 0.12, particleCount: 70,  particleSize: 1.0, particleDrift: 1.2, auroraAmount: 0.4,  auroraSpeed: 0.6 } },
-    dreamy: { cooldown: 5000, burst: 1, fx: { sensitivity: 1.5,  rippleSize: 1.25, rippleLife: 14000, rippleWidth: 1.0, rippleAlpha: 0.17, particleCount: 120, particleSize: 1.2, particleDrift: 1.6, auroraAmount: 0.55, auroraSpeed: 1.0 } },
-    pulse:  { cooldown: 2400, burst: 1, fx: { sensitivity: 1.3,  rippleSize: 0.9,  rippleLife: 10000, rippleWidth: 1.3, rippleAlpha: 0.25, particleCount: 160, particleSize: 0.9, particleDrift: 2.2, auroraAmount: 0.35, auroraSpeed: 1.6 } }
+    calm:   { cooldown: 350, burst: 1, beatMod: 48, fx: { sensitivity: 1.7,  rippleSize: 1.0,  rippleLife: 14000, rippleWidth: 0.9, rippleAlpha: 0.2,  particleCount: 70,  particleSize: 1.0, particleDrift: 1.2, auroraAmount: 0.4,  auroraSpeed: 0.6 } },
+    dreamy: { cooldown: 350, burst: 1, beatMod: 32, fx: { sensitivity: 1.55, rippleSize: 1.25, rippleLife: 12000, rippleWidth: 1.0, rippleAlpha: 0.22, particleCount: 120, particleSize: 1.2, particleDrift: 1.6, auroraAmount: 0.55, auroraSpeed: 1.0 } },
+    pulse:  { cooldown: 300, burst: 1, beatMod: 12, fx: { sensitivity: 1.35, rippleSize: 0.9,  rippleLife: 8000,  rippleWidth: 1.3, rippleAlpha: 0.3,  particleCount: 160, particleSize: 0.9, particleDrift: 2.2, auroraAmount: 0.35, auroraSpeed: 1.6 } }
   };
 
   // Palette definitions — name + 3 tones. Keys match body.theme-* classes.
@@ -64,6 +67,7 @@
     zenMixClose: document.getElementById('zenMixClose'),
     zenMixReopen: document.getElementById('zenMixReopen'),
     rippleCanvas: document.getElementById('ripple-canvas'),
+    zenSpectrumCanvas: document.getElementById('zenSpectrumCanvas'),
     tempo: document.getElementById('tempo'),
     tempoVal: document.getElementById('tempoVal'),
     filter: document.getElementById('filter'),
@@ -197,6 +201,8 @@
       btn.classList.toggle('active', btn.dataset.id === id);
     }
     el.strudelEl.setAttribute('code', t.code);
+    beatIndex = 0;
+    bassHist = [];
     const editor = getEditor();
     if (editor && state.playing) {
       try { await editor.evaluate(true); } catch (e) { console.error(e); }
@@ -207,6 +213,13 @@
 
   // ── source toggle (Preset / Custom) ────────────
   function setSource(src) {
+    // If we're LEAVING custom, snapshot the editor's current code so we
+    // can restore it when the user comes back. setCode only runs if we
+    // don't already have a snapshot (first entry into custom mode).
+    if (state.source === 'custom' && src !== 'custom') {
+      const ed = getEditor();
+      if (ed && typeof ed.code === 'string') state.customCode = ed.code;
+    }
     state.source = src;
     document.body.classList.toggle('source-custom', src === 'custom');
     for (const pill of el.sourcePills) {
@@ -215,13 +228,14 @@
       pill.setAttribute('aria-selected', on ? 'true' : 'false');
     }
     if (src === 'custom') {
-      el.strudelEl.setAttribute('code', '// paste or write your own strudel code\n// then tap the record\n\ns("bd*4, ~ cp").bank("RolandTR909")');
+      const code = state.customCode || '// paste or write your own strudel code\n// then tap the record\n\ns("bd*4, ~ cp").bank("RolandTR909")';
+      el.strudelEl.setAttribute('code', code);
       state.template = {
         id: 'custom',
         name: 'custom',
         author: 'you',
         defaultCps: 0.8,
-        code: ''
+        code
       };
       refreshTemplateTitles();
       for (const btn of el.templates.querySelectorAll('.tpl')) btn.classList.remove('active');
@@ -247,13 +261,23 @@
     el.tonearm.classList.toggle('on', isPlaying);
     el.liveDot.classList.toggle('on', isPlaying);
     el.deck.classList.toggle('playing', isPlaying);
+    document.body.classList.toggle('is-playing', isPlaying);
     setTagKey(isPlaying ? 'tagline_live' : (state.template ? 'tagline_cued' : 'tagline_ready_short'));
     updateCta();
   }
 
   function updateCta() {
-    const hide = state.playing || !state.template;
-    el.cta.classList.toggle('hidden', hide);
+    // Hide only before a track is picked. Once picked, the CTA stays
+    // visible and toggles between "play" and "stop" copy so users
+    // always know how to toggle playback.
+    el.cta.classList.toggle('hidden', !state.template);
+    el.cta.classList.toggle('stop', state.playing);
+    const ctaMain = el.cta.querySelector('.cta-main');
+    if (ctaMain) {
+      const key = state.playing ? 'cta_stop' : 'cta_tap';
+      ctaMain.setAttribute('data-i18n', key);
+      ctaMain.textContent = tr(key);
+    }
   }
 
   function refreshCpsReadout() {
@@ -277,6 +301,11 @@
     applyFxToStyles();
     syncMoodUI();
     seedParticles(particleCount());
+    // mood-driven default for spectrum-below-disk: only pulse turns it on
+    const spectrumOn = mood === 'pulse';
+    document.body.classList.toggle('show-zen-spectrum', spectrumOn);
+    const spChk = el.zenMix.querySelector('.zm-check[data-effect="zen-spectrum"]');
+    if (spChk) spChk.checked = spectrumOn;
   }
   function syncMoodUI() {
     for (const btn of el.zenMix.querySelectorAll('[data-zen-mood]')) {
@@ -321,6 +350,14 @@
 
   // ── effect toggles (Zen Mix) ──────────────────
   function toggleEffect(name, on) {
+    // "zen-spectrum" isn't a visual layer we hide on the spectrum
+    // canvas — it's an opt-in "show a small spectrum under the disk"
+    // and uses a different body class so the logic stays simple.
+    if (name === 'zen-spectrum') {
+      document.body.classList.toggle('show-zen-spectrum', on);
+      if (on) setTimeout(sizeZenSpectrumCanvas, 60);
+      return;
+    }
     state.effects[name] = on;
     document.body.classList.toggle(`fx-off-${name}`, !on);
   }
@@ -332,13 +369,33 @@
     }
   }
 
+  // ── zen idle auto-hide (chrome fades when mouse is still) ─────
+  let zenIdleTimer = null;
+  function markZenActive() {
+    if (!state.zen) return;
+    document.body.classList.remove('zen-idle');
+    clearTimeout(zenIdleTimer);
+    zenIdleTimer = setTimeout(() => {
+      if (state.zen) document.body.classList.add('zen-idle');
+    }, 1500);
+  }
+  document.addEventListener('mousemove', markZenActive);
+  document.addEventListener('keydown', markZenActive);
+
   // ── zen mode ──────────────────────────────────
   function setZen(on) {
     state.zen = on;
     document.body.classList.toggle('zen-mode', on);
     el.zenBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
     // Leaving zen resets mix-closed so next entry shows the panel again.
-    if (!on) document.body.classList.remove('mix-closed');
+    if (!on) {
+      document.body.classList.remove('mix-closed');
+      document.body.classList.remove('zen-idle');
+      clearTimeout(zenIdleTimer);
+    } else {
+      // entering zen: chrome visible for a beat, then fade on idle
+      markZenActive();
+    }
     seedParticles(particleCount());
   }
 
@@ -396,6 +453,7 @@
   // ── ripples ───────────────────────────────────
   const ripples = [];
   let lastBeat = 0;
+  let beatIndex = 0; // how many kicks detected since boot
   let bassHist = [];
   function centerXY() {
     const r = el.vinyl.getBoundingClientRect();
@@ -431,6 +489,9 @@
     const m = MOODS[state.mood];
     if (bass > threshold && bass > 25 && now - lastBeat > m.cooldown) {
       lastBeat = now;
+      beatIndex++;
+      const mod = m.beatMod || 1;
+      if (beatIndex % mod !== 0) return;
       for (let i = 0; i < m.burst; i++) {
         setTimeout(() => spawnRipple(Math.min(bass / 180, 1.5)), i * 80);
       }
@@ -508,6 +569,42 @@
     c.width = Math.max(1, Math.floor(rect.width * dpr));
     c.height = Math.max(1, Math.floor(rect.height * dpr));
   }
+  function sizeZenSpectrumCanvas() {
+    const c = el.zenSpectrumCanvas;
+    if (!c) return;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = c.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    c.width = Math.max(1, Math.floor(rect.width * dpr));
+    c.height = Math.max(1, Math.floor(rect.height * dpr));
+    c.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function drawZenSpectrum(bins) {
+    const c = el.zenSpectrumCanvas;
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    const w = c.clientWidth, h = c.clientHeight;
+    ctx.clearRect(0, 0, w, h);
+    if (!bins || !state.zen || !document.body.classList.contains('show-zen-spectrum')) return;
+    const NUM_BARS = 52;
+    const step = Math.max(1, Math.floor(bins.length / NUM_BARS));
+    const gap = 3;
+    const barW = Math.max(1, (w - gap * (NUM_BARS - 1)) / NUM_BARS);
+    const rgb = accentRgb();
+    for (let i = 0; i < NUM_BARS; i++) {
+      let v = 0;
+      for (let j = 0; j < step; j++) v = Math.max(v, bins[i * step + j] || 0);
+      const amp = v / 255;
+      const bh = Math.max(2, amp * h * 0.95);
+      const x = i * (barW + gap);
+      const y = h - bh;
+      const grad = ctx.createLinearGradient(x, y, x, y + bh);
+      grad.addColorStop(0, `rgba(${rgb}, ${0.55 + amp * 0.4})`);
+      grad.addColorStop(1, `rgba(${rgb}, ${0.15 + amp * 0.35})`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(x, y, barW, bh);
+    }
+  }
   function accentRgb() {
     const raw = getComputedStyle(document.body).getPropertyValue('--accent-rgb').trim();
     return raw || '255, 179, 71';
@@ -558,6 +655,8 @@
         maybeSpawnFromBeat(bins);
       }
       drawBackgroundLayer(dt, bins);
+      // extra zen-mode spectrum bars under the disk (opt-in via zen-mix)
+      drawZenSpectrum(bins);
       requestAnimationFrame(frame);
     }
     frame(performance.now());
@@ -566,7 +665,12 @@
   // ── init ───────────────────────────────────────
   sizeSpectrumCanvas();
   sizeRippleCanvas();
-  window.addEventListener('resize', () => { sizeSpectrumCanvas(); sizeRippleCanvas(); });
+  sizeZenSpectrumCanvas();
+  window.addEventListener('resize', () => {
+    sizeSpectrumCanvas();
+    sizeRippleCanvas();
+    sizeZenSpectrumCanvas();
+  });
   drawLoop();
   renderTemplates();
   renderPalettes();
@@ -656,11 +760,19 @@
     el.tempoVal.textContent = `${state.tempo.toFixed(2)}×`;
     applyTempo();
     clearTimeout(tempoReEvalTimer);
-    tempoReEvalTimer = setTimeout(() => {
+    tempoReEvalTimer = setTimeout(async () => {
       if (!state.playing) return;
       const editor = getEditor();
-      if (editor && editor.evaluate) editor.evaluate(true).catch(() => {});
-    }, 180);
+      if (editor && editor.evaluate) {
+        try {
+          await editor.evaluate(true);
+          // The template's own setcps() runs on re-eval and resets the
+          // scheduler. Re-apply our multiplier right after so the slider
+          // actually sticks.
+          setTimeout(applyTempo, 40);
+        } catch {}
+      }
+    }, 100);
   });
   el.filter.addEventListener('input', (e) => {
     state.filter = parseFloat(e.target.value);
