@@ -172,6 +172,7 @@
     for (const btn of el.palettePicker.querySelectorAll('.palette')) {
       btn.classList.toggle('active', btn.dataset.theme === theme);
     }
+    try { localStorage.setItem('dj.skin', theme); } catch {}
   }
 
   function refreshTemplateTitles() {
@@ -673,6 +674,14 @@
   });
   drawLoop();
   renderTemplates();
+  // restore previously chosen palette (if any) before rendering swatches
+  try {
+    const savedSkin = localStorage.getItem('dj.skin');
+    if (savedSkin && PALETTES.some(p => p.id === savedSkin)) {
+      state.skin = savedSkin;
+      if (savedSkin !== 'amber') document.body.classList.add(`theme-${savedSkin}`);
+    }
+  } catch {}
   renderPalettes();
   wireFxSliders();
   wireEffectChecks();
