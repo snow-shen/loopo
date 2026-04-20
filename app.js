@@ -11,24 +11,24 @@
     source: 'preset', // preset | custom
     effects: { aurora: true, ripples: true, particles: true },
     fx: {
-      sensitivity: 1.45,
-      rippleSize: 1.0,
-      rippleLife: 9500,
-      rippleWidth: 1.1,
-      rippleAlpha: 0.4,
-      particleCount: 70,
-      particleSize: 1.0,
-      particleDrift: 1.2,
-      auroraAmount: 0.4,
+      sensitivity: 1.5,
+      rippleSize: 1.25,
+      rippleLife: 14000,
+      rippleWidth: 1.0,
+      rippleAlpha: 0.17,
+      particleCount: 120,
+      particleSize: 1.2,
+      particleDrift: 1.6,
+      auroraAmount: 0.55,
       auroraSpeed: 1.0
     }
   };
 
-  // All moods get slower, less-frequent ripples + more floating particles
+  // Ripples tuned to quiet ambient — very rare, very faint, very slow.
   const MOODS = {
-    calm:   { cooldown: 2800, burst: 1, fx: { sensitivity: 1.45, rippleSize: 1.0,  rippleLife: 9500, rippleWidth: 1.1, rippleAlpha: 0.4,  particleCount: 70,  particleSize: 1.0, particleDrift: 1.2, auroraAmount: 0.4,  auroraSpeed: 0.6 } },
-    dreamy: { cooldown: 1800, burst: 1, fx: { sensitivity: 1.3,  rippleSize: 1.25, rippleLife: 8000, rippleWidth: 1.5, rippleAlpha: 0.55, particleCount: 120, particleSize: 1.2, particleDrift: 1.6, auroraAmount: 0.55, auroraSpeed: 1.0 } },
-    pulse:  { cooldown: 900,  burst: 1, fx: { sensitivity: 1.15, rippleSize: 0.9,  rippleLife: 5500, rippleWidth: 1.9, rippleAlpha: 0.7,  particleCount: 160, particleSize: 0.9, particleDrift: 2.2, auroraAmount: 0.35, auroraSpeed: 1.6 } }
+    calm:   { cooldown: 7500, burst: 1, fx: { sensitivity: 1.65, rippleSize: 1.0,  rippleLife: 18000, rippleWidth: 0.8, rippleAlpha: 0.12, particleCount: 70,  particleSize: 1.0, particleDrift: 1.2, auroraAmount: 0.4,  auroraSpeed: 0.6 } },
+    dreamy: { cooldown: 5000, burst: 1, fx: { sensitivity: 1.5,  rippleSize: 1.25, rippleLife: 14000, rippleWidth: 1.0, rippleAlpha: 0.17, particleCount: 120, particleSize: 1.2, particleDrift: 1.6, auroraAmount: 0.55, auroraSpeed: 1.0 } },
+    pulse:  { cooldown: 2400, burst: 1, fx: { sensitivity: 1.3,  rippleSize: 0.9,  rippleLife: 10000, rippleWidth: 1.3, rippleAlpha: 0.25, particleCount: 160, particleSize: 0.9, particleDrift: 2.2, auroraAmount: 0.35, auroraSpeed: 1.6 } }
   };
 
   // Palette definitions — name + 3 tones. Keys match body.theme-* classes.
@@ -466,8 +466,8 @@
       ctx.arc(r.x, r.y, radius, 0, Math.PI * 2);
       ctx.strokeStyle = `rgba(${rgb}, ${alpha})`;
       ctx.lineWidth = r.lineWidth;
-      ctx.shadowColor = `rgba(${rgb}, ${alpha * 0.5})`;
-      ctx.shadowBlur = 8;
+      ctx.shadowColor = `rgba(${rgb}, ${alpha * 0.35})`;
+      ctx.shadowBlur = 4;
       ctx.stroke();
     }
     ctx.shadowBlur = 0;
@@ -517,7 +517,7 @@
     const canvas = document.getElementById('test-canvas');
     const ctx = canvas.getContext('2d');
     let bins = null;
-    const NUM_BARS = 56;
+    const NUM_BARS = 42;
     let lastT = performance.now();
     function frame(now) {
       const dt = now - lastT;
@@ -530,25 +530,29 @@
         }
         analyser.getByteFrequencyData(bins);
         const step = Math.max(1, Math.floor(bins.length / NUM_BARS));
-        const gap = Math.max(2, Math.floor(w / NUM_BARS * 0.16));
-        const barW = (w - gap * (NUM_BARS - 1)) / NUM_BARS;
+        // vertical column: bars stack down the height, each is a
+        // horizontal capsule whose width = amplitude, centered
+        const gap = Math.max(2, Math.floor(h / NUM_BARS * 0.16));
+        const barH = (h - gap * (NUM_BARS - 1)) / NUM_BARS;
         const rgb = accentRgb();
         for (let i = 0; i < NUM_BARS; i++) {
           let v = 0;
           for (let j = 0; j < step; j++) v = Math.max(v, bins[i * step + j] || 0);
           const amp = v / 255;
-          const bh = Math.max(2, amp * h * 0.82);
-          const x = i * (barW + gap);
-          const y = (h - bh) / 2;
+          const bw = Math.max(2, amp * w * 0.88);
+          const x = (w - bw) / 2;
+          // low freq at bottom, high freq at top
+          const y = h - (i + 1) * (barH + gap) + gap;
           const a = 0.55 + amp * 0.4;
           const aDim = 0.25 + amp * 0.4;
-          const grad = ctx.createLinearGradient(x, y, x, y + bh);
-          grad.addColorStop(0, `rgba(${rgb}, ${a})`);
+          const grad = ctx.createLinearGradient(x, y, x + bw, y);
+          grad.addColorStop(0, `rgba(${rgb}, ${aDim})`);
+          grad.addColorStop(0.5, `rgba(${rgb}, ${a})`);
           grad.addColorStop(1, `rgba(${rgb}, ${aDim})`);
           ctx.fillStyle = grad;
-          ctx.shadowColor = `rgba(${rgb}, ${amp * 0.5})`;
-          ctx.shadowBlur = amp * 14;
-          ctx.fillRect(x, y, barW, bh);
+          ctx.shadowColor = `rgba(${rgb}, ${amp * 0.45})`;
+          ctx.shadowBlur = amp * 10;
+          ctx.fillRect(x, y, bw, barH);
         }
         ctx.shadowBlur = 0;
         maybeSpawnFromBeat(bins);
@@ -568,7 +572,7 @@
   renderPalettes();
   wireFxSliders();
   wireEffectChecks();
-  applyMood('calm');
+  applyMood('dreamy');
   // Default to the first curated track so the home page isn't empty
   waitForEditor().then(() => {
     selectTemplate(window.DJ_TEMPLATES[0].id);

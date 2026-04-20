@@ -507,8 +507,8 @@ body.source-custom .templates { display: none; }
 
 .stage {
   display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: var(--s5);
+  grid-template-columns: 340px 1fr 96px;
+  gap: var(--s4);
   align-items: stretch;
 }
 .deck-wrap {
@@ -948,14 +948,23 @@ strudel-editor { display: none; }
 /* ── visualizer ───────────────────────────────── */
 
 .viz-wrap {
-  padding: var(--s3) var(--s4);
+  padding: var(--s3) var(--s2);
   display: flex;
   flex-direction: column;
   gap: var(--s2);
+  align-items: center;
+  min-height: 380px;
+}
+.viz-wrap .eyebrow {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  margin: 0 0 var(--s2) 0;
+  padding: var(--s2) 0;
 }
 .viz {
   width: 100%;
-  height: 120px;
+  flex: 1;
+  min-height: 280px;
   background: transparent;
   border-radius: var(--radius-sm);
   display: block;
@@ -1323,6 +1332,9 @@ body.zen-mode .grain { opacity: 0.025; }
   .stage { grid-template-columns: 1fr; }
   .deck-wrap { align-self: center; }
   .mixer-grid { grid-template-columns: 1fr; }
+  .viz-wrap { min-height: 160px; }
+  .viz-wrap .eyebrow { writing-mode: horizontal-tb; transform: none; margin: 0 0 var(--s2); }
+  .viz { min-height: 100px; }
 }
 @media (max-width: 720px) {
   .templates { grid-template-columns: 1fr 1fr; }
