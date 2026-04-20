@@ -10,7 +10,7 @@ window.DJ_TEMPLATES = [
     defaultCps: 0.75,
     code: `// "coastline" @by eddyflux
 // @version 1.0
-samples('github:eddyflux/crate')
+samples('https://raw.githubusercontent.com/eddyflux/crate/master/strudel.json','https://raw.githubusercontent.com/eddyflux/crate/master/')
 setcps(.75)
 let chords = chord("<Bbm9 Fm9>/4").dict('ireal')
 stack(
