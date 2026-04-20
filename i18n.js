@@ -147,8 +147,9 @@
     if (q === 'en' || q === 'zh') return q;
     const saved = localStorage.getItem('dj.lang');
     if (saved === 'en' || saved === 'zh') return saved;
-    // Hard default to Chinese. Users can switch via the EN·中 toggle.
-    return 'zh';
+    // Follow the browser language: English browsers → en, everything
+    // else → zh (primary deployment is CN).
+    return (navigator.language || '').toLowerCase().startsWith('en') ? 'en' : 'zh';
   }
 
   const state = { lang: detectLang() };
