@@ -147,8 +147,8 @@
     if (q === 'en' || q === 'zh') return q;
     const saved = localStorage.getItem('dj.lang');
     if (saved === 'en' || saved === 'zh') return saved;
-    // Default to zh — primary deployment targets CN users.
-    return (navigator.language || '').toLowerCase().startsWith('en') ? 'en' : 'zh';
+    // Hard default to Chinese. Users can switch via the EN·中 toggle.
+    return 'zh';
   }
 
   const state = { lang: detectLang() };
