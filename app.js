@@ -1,6 +1,7 @@
 (() => {
   const state = {
     template: null,
+    lastPresetId: null,
     playing: false,
     tempo: 1.0,
     filter: 20000,
@@ -100,6 +101,14 @@
   // Keeps the "real" track identity visible in both languages.
   const trackName = (t) => t.name;
   const trackSub = (t) => t.nameZh || '';
+  const defaultCustomCode = () => '// paste or write your own strudel code\n// then tap the record\n\ns("bd*4, ~ cp").bank("RolandTR909")';
+  const buildCustomTemplate = (code) => ({
+    id: 'custom',
+    name: 'custom',
+    author: 'you',
+    defaultCps: 0.8,
+    code
+  });
 
   function setTag(msg) {
     el.tagText.removeAttribute('data-i18n');
@@ -110,6 +119,15 @@
     el.tagText.textContent = tr(key);
   }
   function getEditor() { return el.strudelEl?.editor || null; }
+  function setEditorCode(code) {
+    const editor = getEditor();
+    if (editor && typeof editor.setCode === 'function') {
+      editor.setCode(code);
+      return editor;
+    }
+    el.strudelEl.setAttribute('code', code);
+    return editor;
+  }
 
   async function waitForEditor(timeoutMs = 25000) {
     const start = Date.now();
@@ -137,9 +155,9 @@
           <span class="tpl-by">@${t.author}</span>
           <span class="tpl-cps">${t.defaultCps.toFixed(2)} CPS</span>
         </span>`;
-      b.addEventListener('click', () => {
-        if (state.source !== 'preset') setSource('preset');
-        selectTemplate(t.id);
+      b.addEventListener('click', async () => {
+        if (state.source !== 'preset') await setSource('preset');
+        await selectTemplate(t.id);
       });
       el.templates.appendChild(b);
     });
@@ -195,6 +213,7 @@
     const t = window.DJ_TEMPLATES.find(x => x.id === id);
     if (!t) return;
     state.template = t;
+    state.lastPresetId = t.id;
     refreshTemplateTitles();
     const idx = window.DJ_TEMPLATES.indexOf(t) + 1;
     el.labelNumber.textContent = String(idx).padStart(2, '0');
@@ -205,23 +224,40 @@
     // with the component's own connectedCallback setTimeout which reads
     // innerHTML and overwrites code. On fast mobile browsers (WeChat)
     // that race ate our selectTemplate and left the editor empty.
-    const editor = getEditor();
-    if (editor && typeof editor.setCode === 'function') {
-      editor.setCode(t.code);
-    } else {
-      el.strudelEl.setAttribute('code', t.code);
-    }
+    const editor = setEditorCode(t.code);
     beatIndex = 0;
     bassHist = [];
     if (editor && state.playing) {
-      try { await editor.evaluate(true); } catch (e) { console.error(e); }
+      try {
+        await editor.evaluate(true);
+        if (state.tempo !== 1.0) setTimeout(applyTempo, 40);
+      } catch (e) { console.error(e); }
+    }
+    refreshCpsReadout();
+    updateCta();
+  }
+
+  async function activateCustomTemplate(code = state.customCode || defaultCustomCode()) {
+    state.customCode = code;
+    state.template = buildCustomTemplate(code);
+    const editor = setEditorCode(code);
+    beatIndex = 0;
+    bassHist = [];
+    el.labelNumber.textContent = '--';
+    refreshTemplateTitles();
+    for (const btn of el.templates.querySelectorAll('.tpl')) btn.classList.remove('active');
+    if (editor && state.playing) {
+      try {
+        await editor.evaluate(true);
+        if (state.tempo !== 1.0) setTimeout(applyTempo, 40);
+      } catch (e) { console.error(e); }
     }
     refreshCpsReadout();
     updateCta();
   }
 
   // ── source toggle (Preset / Custom) ────────────
-  function setSource(src) {
+  async function setSource(src) {
     // If we're LEAVING custom, snapshot the editor's current code so we
     // can restore it when the user comes back. setCode only runs if we
     // don't already have a snapshot (first entry into custom mode).
@@ -237,17 +273,7 @@
       pill.setAttribute('aria-selected', on ? 'true' : 'false');
     }
     if (src === 'custom') {
-      const code = state.customCode || '// paste or write your own strudel code\n// then tap the record\n\ns("bd*4, ~ cp").bank("RolandTR909")';
-      el.strudelEl.setAttribute('code', code);
-      state.template = {
-        id: 'custom',
-        name: 'custom',
-        author: 'you',
-        defaultCps: 0.8,
-        code
-      };
-      refreshTemplateTitles();
-      for (const btn of el.templates.querySelectorAll('.tpl')) btn.classList.remove('active');
+      await activateCustomTemplate();
     }
   }
 
@@ -569,6 +595,10 @@
       return origConnect.call(this, dest, ...rest);
     };
   }
+  async function togglePlayFromGesture() {
+    if (!analyser) setupMasterChain();
+    await togglePlay();
+  }
 
   function sizeSpectrumCanvas() {
     const c = document.getElementById('test-canvas');
@@ -700,10 +730,17 @@
   wireFxSliders();
   wireEffectChecks();
   applyMood('dreamy');
-  // Default to the first curated track so the home page isn't empty
-  waitForEditor().then(() => {
-    selectTemplate(window.DJ_TEMPLATES[0].id);
-    setTagKey('tagline_ready');
+  // If the user already picked a template while the editor was booting,
+  // hydrate that choice instead of overwriting it with the default track.
+  waitForEditor().then(async () => {
+    if (!state.template) {
+      await selectTemplate(window.DJ_TEMPLATES[0].id);
+    } else if (state.template.id === 'custom') {
+      await activateCustomTemplate(state.customCode || state.template.code || defaultCustomCode());
+    } else {
+      await selectTemplate(state.template.id);
+    }
+    if (!state.playing) setTagKey('tagline_ready');
   }).catch(err => setTag(err.message));
   updateCta();
 
@@ -714,29 +751,30 @@
   });
 
   el.vinyl.addEventListener('click', async () => {
-    await togglePlay();
-    if (!analyser) setupMasterChain();
+    await togglePlayFromGesture();
   });
   el.cta.addEventListener('click', async (e) => {
     e.preventDefault();
-    await togglePlay();
-    if (!analyser) setupMasterChain();
+    await togglePlayFromGesture();
   });
 
   document.addEventListener('keydown', e => {
     const isCm = e.target?.closest && e.target.closest('.cm-editor');
     if (e.code === 'Space' && !(e.target instanceof HTMLInputElement) && !isCm) {
       e.preventDefault();
-      togglePlay().then(() => { if (!analyser) setupMasterChain(); });
+      togglePlayFromGesture();
     }
     if (e.key === 'Escape' && state.zen) setZen(false);
   });
 
   // Source toggle handlers
   for (const pill of el.sourcePills) {
-    pill.addEventListener('click', () => {
-      setSource(pill.dataset.source);
-      if (pill.dataset.source === 'preset') selectTemplate(state.template?.id || window.DJ_TEMPLATES[0].id);
+    pill.addEventListener('click', async () => {
+      const nextSource = pill.dataset.source;
+      await setSource(nextSource);
+      if (nextSource === 'preset') {
+        await selectTemplate(state.lastPresetId || window.DJ_TEMPLATES[0].id);
+      }
     });
   }
 

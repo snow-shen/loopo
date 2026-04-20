@@ -147,7 +147,8 @@
   function detectLang() {
     const q = new URLSearchParams(location.search).get('lang');
     if (q === 'en' || q === 'zh') return q;
-    const saved = localStorage.getItem('dj.lang');
+    let saved = null;
+    try { saved = localStorage.getItem('dj.lang'); } catch {}
     if (saved === 'en' || saved === 'zh') return saved;
     // Follow the browser language: English browsers → en, everything
     // else → zh (primary deployment is CN).

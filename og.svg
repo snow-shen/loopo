@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="loopo social card">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#081019" />
+      <stop offset="55%" stop-color="#05070c" />
+      <stop offset="100%" stop-color="#06070a" />
+    </linearGradient>
+    <radialGradient id="glowA" cx="0.18" cy="0.22" r="0.7">
+      <stop offset="0%" stop-color="#ffb347" stop-opacity="0.55" />
+      <stop offset="100%" stop-color="#ffb347" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glowB" cx="0.78" cy="0.3" r="0.58">
+      <stop offset="0%" stop-color="#ff8fab" stop-opacity="0.32" />
+      <stop offset="100%" stop-color="#ff8fab" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glowC" cx="0.72" cy="0.82" r="0.5">
+      <stop offset="0%" stop-color="#8ec5ff" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#8ec5ff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)" />
+  <rect width="1200" height="630" fill="url(#glowA)" />
+  <rect width="1200" height="630" fill="url(#glowB)" />
+  <rect width="1200" height="630" fill="url(#glowC)" />
+
+  <g opacity="0.55">
+    <circle cx="300" cy="330" r="188" fill="none" stroke="#ffb347" stroke-opacity="0.38" stroke-width="5" />
+    <circle cx="300" cy="330" r="135" fill="none" stroke="#edf0fa" stroke-opacity="0.1" stroke-width="2" />
+    <circle cx="300" cy="330" r="84" fill="none" stroke="#edf0fa" stroke-opacity="0.08" stroke-width="2" />
+    <circle cx="300" cy="330" r="28" fill="#ffb347" fill-opacity="0.88" />
+  </g>
+
+  <rect x="150" y="505" width="300" height="8" rx="4" fill="#ffb347" fill-opacity="0.3" />
+  <rect x="150" y="523" width="225" height="8" rx="4" fill="#ff8fab" fill-opacity="0.22" />
+
+  <g fill="#edf0fa" font-family="'Space Grotesk', 'Avenir Next', sans-serif">
+    <text x="520" y="228" font-size="98" font-weight="700" letter-spacing="-2">loopo</text>
+    <text x="520" y="302" font-size="28" font-weight="500" fill-opacity="0.9">browser DJ booth</text>
+    <text x="520" y="360" font-size="22" font-weight="500" fill-opacity="0.72">
+      Pick a beat. Spin the record. Push the faders.
+    </text>
+    <text x="520" y="406" font-size="22" font-weight="500" fill-opacity="0.72">
+      Strudel-powered live-coded music in the browser.
+    </text>
+  </g>
+
+  <g fill="#edf0fa" fill-opacity="0.48" font-family="'JetBrains Mono', 'SF Mono', monospace">
+    <text x="520" y="500" font-size="20" letter-spacing="6">LIVE  TEMPO  FILTER  VOLUME</text>
+  </g>
+
+  <rect x="0" y="0" width="1200" height="630" fill="none" stroke="#ffffff" stroke-opacity="0.08" />
+</svg>
