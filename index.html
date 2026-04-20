@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DJ Strudel</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="description" content="A fake DJ booth in the browser. Pick a beat, spin the record, push the faders." />
+  <meta property="og:title" content="DJ Strudel" />
+  <meta property="og:description" content="A fake DJ booth in the browser. Pick a beat, spin the record, push the faders." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="DJ Strudel" />
+  <meta name="twitter:description" content="A fake DJ booth in the browser. Pick a beat, spin the record, push the faders." />
+  <meta name="twitter:image" content="/og.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css?v=25" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+</head>
+<body>
+  <div class="aurora" aria-hidden="true">
+    <div class="aurora-blob a"></div>
+    <div class="aurora-blob b"></div>
+    <div class="aurora-blob c"></div>
+  </div>
+  <canvas id="ripple-canvas" class="ripple-canvas" aria-hidden="true"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+
+  <button class="zen-btn" id="zenBtn" aria-pressed="false">
+    <span class="zen-orb"></span>
+    <span class="zen-label" data-i18n="zen_btn">ZEN</span>
+  </button>
+
+  <button class="lang-btn" id="langBtn" data-i18n-title="lang_switch_to" type="button">
+    <span class="lang-seg" data-lang-seg="en">EN</span>
+    <span class="lang-sep">·</span>
+    <span class="lang-seg" data-lang-seg="zh">中</span>
+  </button>
+
+  <header class="hero">
+    <div class="hero-left">
+      <div class="wordmark">
+        <span class="dj">DJ</span><span class="strudel">STRUDEL</span>
+      </div>
+      <div class="tagline">
+        <span class="live-dot" id="liveDot"></span>
+        <span id="tagText" data-i18n="tagline_loading">loading strudel…</span>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="stat">
+        <div class="stat-label" data-i18n="cps_label">CYCLES / SEC</div>
+        <div class="stat-value" id="cpsReadout">—</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="booth">
+    <section class="source-bar glass-card">
+      <div class="source-head">
+        <p class="eyebrow" data-i18n="source_eyebrow">Source</p>
+        <h2 data-i18n="source_head">pick a track · or paste code</h2>
+      </div>
+      <div class="source-toggle" role="tablist">
+        <button class="source-pill active" data-source="preset" role="tab" aria-selected="true" data-i18n="source_preset">Preset</button>
+        <button class="source-pill" data-source="custom" role="tab" aria-selected="false" data-i18n="source_custom">Custom</button>
+      </div>
+    </section>
+
+    <nav class="templates" id="templates" aria-label="preset tracks"></nav>
+
+    <section class="stage">
+      <div class="deck-wrap">
+        <div class="deck" id="deck">
+          <div class="deck-halo"></div>
+          <button class="vinyl paused" id="vinyl" aria-pressed="false" aria-label="play or pause">
+            <div class="vinyl-ring outer"></div>
+            <div class="vinyl-ring inner"></div>
+            <div class="label" id="vinylLabel">
+              <span class="label-top">NO. <span id="labelNumber">01</span></span>
+              <span class="label-title" id="vinylTitle">coastline</span>
+              <span class="label-sub">DJ · STRUDEL</span>
+            </div>
+          </button>
+          <div class="tonearm" id="tonearm"></div>
+        </div>
+        <div class="cta" id="cta">
+          <span class="cta-arrow">▸</span>
+          <div class="cta-text">
+            <span class="cta-main" data-i18n="cta_tap">Click the record to play</span>
+            <span class="cta-sub" data-i18n="cta_sub">or press SPACE</span>
+          </div>
+        </div>
+        <div class="palette-picker" id="palettePicker" aria-label="turntable skin"></div>
+        <div class="mixer-side" aria-label="mix controls">
+          <label class="control-row glass-card">
+            <span class="control-label">
+              <span class="control-name" data-i18n="mix_tempo">Tempo</span>
+              <span class="control-hint" data-i18n="mix_tempo_hint">speed</span>
+            </span>
+            <input type="range" id="tempo" min="0.5" max="2" step="0.01" value="1" />
+            <strong class="control-val" id="tempoVal">1.00×</strong>
+          </label>
+          <label class="control-row glass-card">
+            <span class="control-label">
+              <span class="control-name" data-i18n="mix_filter">Filter</span>
+              <span class="control-hint" data-i18n="mix_filter_hint">muffle</span>
+            </span>
+            <input type="range" id="filter" min="200" max="20000" step="50" value="20000" />
+            <strong class="control-val" id="filterVal" data-i18n="filter_open">open</strong>
+          </label>
+          <label class="control-row glass-card">
+            <span class="control-label">
+              <span class="control-name" data-i18n="mix_volume">Volume</span>
+              <span class="control-hint" data-i18n="mix_volume_hint">loud</span>
+            </span>
+            <input type="range" id="volume" min="0" max="1.5" step="0.01" value="0.9" />
+            <strong class="control-val" id="volumeVal">0.90</strong>
+          </label>
+        </div>
+      </div>
+
+      <div class="editor-shell glass-card">
+        <div class="editor-chrome">
+          <div class="chrome-dots"><i></i><i></i><i></i></div>
+          <div class="chrome-title" id="editorTitle" data-i18n="editor_placeholder">// pick a track</div>
+          <div class="chrome-hint" data-i18n="editor_space_play">SPACE · play</div>
+        </div>
+        <div class="editor-body">
+          <strudel-editor id="strudelEditor">
+            <!--
+// press a track above
+silence
+-->
+          </strudel-editor>
+        </div>
+      </div>
+    </section>
+
+    <section class="viz-wrap glass-card">
+      <p class="eyebrow" data-i18n="spectrum_eyebrow">Spectrum</p>
+      <canvas id="test-canvas" class="viz" aria-hidden="true"></canvas>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span data-i18n="footer_text">fake DJ deck · powered by strudel · press ZEN to drift</span>
+  </footer>
+
+  <div class="zen-caption" id="zenCaption" aria-hidden="true">
+    <span id="zenTitle">—</span>
+    <span class="zen-mood-tag" id="zenMoodTag">calm</span>
+  </div>
+
+  <aside class="zen-mix glass-card" id="zenMix" aria-hidden="true">
+    <header class="zm-header">
+      <p class="eyebrow" data-i18n="zen_eyebrow">Zen Mix</p>
+      <button class="zm-close" id="zenMixClose" aria-label="close zen">×</button>
+    </header>
+
+    <div class="zm-section">
+      <div class="zm-section-title" data-i18n="zen_layers">Layers</div>
+      <div class="zm-section-hint" data-i18n="zen_layers_hint">toggle each visual · tune its feel</div>
+    </div>
+
+    <div class="zm-layer" data-fx="aurora">
+      <label class="zm-layer-head">
+        <input type="checkbox" class="zm-check" data-effect="aurora" checked />
+        <span class="zm-name" data-i18n="zen_aurora">Aurora</span>
+        <span class="zm-sub" data-i18n="zen_aurora_sub">ambient gradient field</span>
+      </label>
+      <div class="zm-knobs">
+        <label class="zm-knob">
+          <span data-i18n="zen_amount">Amount</span>
+          <input type="range" id="fxAurora" min="0" max="1.6" step="0.01" value="0.4" />
+          <em id="fxAuroraVal">0.40</em>
+        </label>
+        <label class="zm-knob">
+          <span data-i18n="zen_drift">Drift</span>
+          <input type="range" id="fxAuroraSpeed" min="0.3" max="3" step="0.05" value="1.0" />
+          <em id="fxAuroraSpeedVal">1.0×</em>
+        </label>
+      </div>
+    </div>
+
+    <div class="zm-layer" data-fx="ripples">
+      <label class="zm-layer-head">
+        <input type="checkbox" class="zm-check" data-effect="ripples" checked />
+        <span class="zm-name" data-i18n="zen_ripples">Ripples</span>
+        <span class="zm-sub" data-i18n="zen_ripples_sub">pulse on beats</span>
+      </label>
+      <div class="zm-knobs">
+        <label class="zm-knob">
+          <span data-i18n="zen_size">Size</span>
+          <input type="range" id="fxRippleSize" min="0.3" max="2.4" step="0.01" value="1.0" />
+          <em id="fxRippleSizeVal">1.00×</em>
+        </label>
+        <label class="zm-knob">
+          <span data-i18n="zen_life">Life</span>
+          <input type="range" id="fxRippleLife" min="1000" max="9000" step="100" value="6000" />
+          <em id="fxRippleLifeVal">6.0s</em>
+        </label>
+        <label class="zm-knob">
+          <span data-i18n="zen_sens">Beat sens</span>
+          <input type="range" id="fxSens" min="0.9" max="1.8" step="0.01" value="1.35" />
+          <em id="fxSensVal">1.35</em>
+        </label>
+      </div>
+    </div>
+
+    <div class="zm-layer" data-fx="particles">
+      <label class="zm-layer-head">
+        <input type="checkbox" class="zm-check" data-effect="particles" checked />
+        <span class="zm-name" data-i18n="zen_particles">Particles</span>
+        <span class="zm-sub" data-i18n="zen_particles_sub">drifting bokeh</span>
+      </label>
+      <div class="zm-knobs">
+        <label class="zm-knob">
+          <span data-i18n="zen_count">Count</span>
+          <input type="range" id="fxPcount" min="0" max="300" step="5" value="60" />
+          <em id="fxPcountVal">60</em>
+        </label>
+        <label class="zm-knob">
+          <span data-i18n="zen_size">Size</span>
+          <input type="range" id="fxPsize" min="0.3" max="3" step="0.05" value="1.0" />
+          <em id="fxPsizeVal">1.0×</em>
+        </label>
+      </div>
+    </div>
+
+    <div class="zm-section zm-section-break">
+      <div class="zm-section-title" data-i18n="zen_quick_vibe">Quick Vibe</div>
+      <div class="zm-section-hint" data-i18n="zen_quick_vibe_hint">one-tap presets · snap every layer at once</div>
+    </div>
+
+    <div class="zm-mood-row">
+      <button class="zm-mood-pill active" data-zen-mood="calm">
+        <span class="zm-mood-name" data-i18n="mood_calm">calm</span>
+        <span class="zm-mood-desc" data-i18n="mood_calm_desc">slow · soft</span>
+      </button>
+      <button class="zm-mood-pill" data-zen-mood="dreamy">
+        <span class="zm-mood-name" data-i18n="mood_dreamy">dreamy</span>
+        <span class="zm-mood-desc" data-i18n="mood_dreamy_desc">wide · hazy</span>
+      </button>
+      <button class="zm-mood-pill" data-zen-mood="pulse">
+        <span class="zm-mood-name" data-i18n="mood_pulse">pulse</span>
+        <span class="zm-mood-desc" data-i18n="mood_pulse_desc">fast · reactive</span>
+      </button>
+    </div>
+  </aside>
+
+  <script src="https://unpkg.com/@strudel/repl@1.3.0"></script>
+  <script src="./i18n.js?v=25"></script>
+  <script src="./templates.js?v=25"></script>
+  <script src="./app.js?v=25"></script>
+</body>
+</html>
