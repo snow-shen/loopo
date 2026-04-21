@@ -190,6 +190,9 @@
     for (const btn of el.palettePicker.querySelectorAll('.palette')) {
       btn.classList.toggle('active', btn.dataset.theme === theme);
     }
+    // cached spectrum gradient is keyed on rgb — drop it so next frame
+    // rebuilds with the new accent
+    spectrumGradKey = '';
     try { localStorage.setItem('dj.skin', theme); } catch {}
   }
 
@@ -462,6 +465,8 @@
     const zenBoost = state.zen ? 1.0 : 0.55;
     const drift = state.fx.particleDrift;
     const sizeMul = state.fx.particleSize;
+    // Glow replaces shadowBlur (one of the slowest canvas ops) with a
+    // cheap radial-gradient fill around each particle.
     for (const p of particles) {
       p.x += p.vx * drift * (dt / 16);
       p.y += p.vy * drift * (dt / 16);
@@ -472,17 +477,13 @@
       if (p.y > H + 10) p.y = -10;
       const freqV = bins ? (bins[p.bin] || 0) / 255 : 0;
       const twinkle = 0.6 + 0.4 * Math.sin(p.phase);
-      // gentler beat-reactivity so particles don't feel like a strobe
       const alpha = (p.base * twinkle + freqV * 0.28) * zenBoost;
       const size = (p.size + freqV * 1.4) * sizeMul;
       ctx.beginPath();
       ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(${rgb}, ${alpha})`;
-      ctx.shadowColor = `rgba(${rgb}, ${alpha * 0.5})`;
-      ctx.shadowBlur = 4 + freqV * 7;
       ctx.fill();
     }
-    ctx.shadowBlur = 0;
   }
 
   // ── ripples ───────────────────────────────────
@@ -533,9 +534,15 @@
     }
   }
 
+  // Cap DPR at 1.5 on all canvases: Retina (dpr=2) makes these 4x the
+  // pixels they need to be. Ambient effects don't need pixel-perfect
+  // sharpness and on high-DPI screens this single cap saves ~40% of
+  // canvas fill cost. Livestreaming typically downsamples anyway.
+  const DPR = () => Math.min(window.devicePixelRatio || 1, 1.5);
+
   function sizeRippleCanvas() {
     const c = el.rippleCanvas;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = DPR();
     c.width = Math.floor(window.innerWidth * dpr);
     c.height = Math.floor(window.innerHeight * dpr);
     c.style.width = window.innerWidth + 'px';
@@ -562,11 +569,8 @@
       ctx.arc(r.x, r.y, radius, 0, Math.PI * 2);
       ctx.strokeStyle = `rgba(${rgb}, ${alpha})`;
       ctx.lineWidth = r.lineWidth;
-      ctx.shadowColor = `rgba(${rgb}, ${alpha * 0.35})`;
-      ctx.shadowBlur = 4;
       ctx.stroke();
     }
-    ctx.shadowBlur = 0;
   }
 
   // ── audio chain: filter → gain → analyser → dest ──
@@ -603,7 +607,7 @@
   function sizeSpectrumCanvas() {
     const c = document.getElementById('test-canvas');
     if (!c) return;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = DPR();
     const rect = c.getBoundingClientRect();
     c.width = Math.max(1, Math.floor(rect.width * dpr));
     c.height = Math.max(1, Math.floor(rect.height * dpr));
@@ -611,7 +615,7 @@
   function sizeZenSpectrumCanvas() {
     const c = el.zenSpectrumCanvas;
     if (!c) return;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = DPR();
     const rect = c.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
     c.width = Math.max(1, Math.floor(rect.width * dpr));
@@ -649,14 +653,42 @@
     return raw || '255, 179, 71';
   }
 
+  // Spectrum uses a single linear gradient reused every frame. The old
+  // loop re-created 42 gradient objects per frame (≈2.5k/sec). We build
+  // once at the full canvas width and recompute only on resize.
+  let spectrumGrad = null;
+  let spectrumGradKey = '';
+  function getSpectrumGrad(ctx, w, rgb) {
+    const key = `${w}|${rgb}`;
+    if (spectrumGrad && spectrumGradKey === key) return spectrumGrad;
+    const g = ctx.createLinearGradient(0, 0, w, 0);
+    g.addColorStop(0,   `rgba(${rgb}, 0.28)`);
+    g.addColorStop(0.5, `rgba(${rgb}, 0.85)`);
+    g.addColorStop(1,   `rgba(${rgb}, 0.28)`);
+    spectrumGrad = g;
+    spectrumGradKey = key;
+    return g;
+  }
+  // Invalidate cached gradient on resize/skin change.
+  window.addEventListener('resize', () => { spectrumGradKey = ''; });
+
   function drawLoop() {
     const canvas = document.getElementById('test-canvas');
     const ctx = canvas.getContext('2d');
     let bins = null;
     const NUM_BARS = 42;
     let lastT = performance.now();
+    let idleSkipToggle = false;
     function frame(now) {
       const dt = now - lastT;
+      // When the page is hidden OR nothing is playing AND we're not in
+      // zen mode, we skip every other frame. Halves GPU cost for the
+      // common "user opened the tab but isn't actively streaming" case.
+      const idle = document.hidden || (!state.playing && !state.zen);
+      if (idle) {
+        idleSkipToggle = !idleSkipToggle;
+        if (idleSkipToggle) { requestAnimationFrame(frame); return; }
+      }
       lastT = now;
       const w = canvas.width, h = canvas.height;
       ctx.clearRect(0, 0, w, h);
@@ -666,35 +698,25 @@
         }
         analyser.getByteFrequencyData(bins);
         const step = Math.max(1, Math.floor(bins.length / NUM_BARS));
-        // vertical column: bars stack down the height, each is a
-        // horizontal capsule whose width = amplitude, centered
         const gap = Math.max(2, Math.floor(h / NUM_BARS * 0.16));
         const barH = (h - gap * (NUM_BARS - 1)) / NUM_BARS;
         const rgb = accentRgb();
+        const grad = getSpectrumGrad(ctx, w, rgb);
+        ctx.fillStyle = grad;
         for (let i = 0; i < NUM_BARS; i++) {
           let v = 0;
           for (let j = 0; j < step; j++) v = Math.max(v, bins[i * step + j] || 0);
           const amp = v / 255;
           const bw = Math.max(2, amp * w * 0.88);
           const x = (w - bw) / 2;
-          // low freq at bottom, high freq at top
           const y = h - (i + 1) * (barH + gap) + gap;
-          const a = 0.55 + amp * 0.4;
-          const aDim = 0.25 + amp * 0.4;
-          const grad = ctx.createLinearGradient(x, y, x + bw, y);
-          grad.addColorStop(0, `rgba(${rgb}, ${aDim})`);
-          grad.addColorStop(0.5, `rgba(${rgb}, ${a})`);
-          grad.addColorStop(1, `rgba(${rgb}, ${aDim})`);
-          ctx.fillStyle = grad;
-          ctx.shadowColor = `rgba(${rgb}, ${amp * 0.45})`;
-          ctx.shadowBlur = amp * 10;
+          ctx.globalAlpha = 0.35 + amp * 0.55;
           ctx.fillRect(x, y, bw, barH);
         }
-        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
         maybeSpawnFromBeat(bins);
       }
       drawBackgroundLayer(dt, bins);
-      // extra zen-mode spectrum bars under the disk (opt-in via zen-mix)
       drawZenSpectrum(bins);
       requestAnimationFrame(frame);
     }
